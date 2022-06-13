@@ -1,0 +1,342 @@
+//ARTHUR SKOK First DSA Project File
+//This file prompts a user to enter the name of an input text file and output text file. (.txt extension) 
+
+//The input text file should include a list of commands, names that start with either an "i", "d", or a "s", and data that 
+//comes in the form of either an int, double or a string, depending on the second word the data's line.
+
+//If the first word/command in a line is create, the third word should either be "stack/queue." 
+
+//The file will read this command as a prompt to create a queue or stack with type based on the first letter of the second word
+//with name of the new data structure being that second word.
+
+//The data structure will be created and a line of text that describes this will be
+//printed onto the output file. If it already exists as a structure, it will print out an error message.
+
+//If the first word/command in a line is push, it will add data to a structure if the
+//second word in the line is a name of a structure already previously created, otherwise an error will be created in the output file.
+
+//Finally, if the first word/command in a line is pop, there will only be two words in that line and the second word shall 
+//specify which data structure the file should pop and if it exists and is not empty, it will pop the data from that list and output
+//the data popped in the file or instead display an error message on the output file.
+
+#include <iostream>
+#include <fstream> 
+#include <string>
+#include <sstream>
+#include <list>
+
+using namespace std;
+
+template <typename T> //we want a generic place to store data regardless of type, templates are used for this.
+class SimpleList {
+  private: //private nested class called Node that seeks to emulate the properties of a node in a singly linked list
+    class Node{ 
+        public:
+          T data;
+          Node *nextNode; 
+    };
+  protected:
+    Node *head;
+    Node *tail;
+    string Name;
+  
+  public: 
+    virtual void push(T data) = 0;
+    virtual T pop() = 0;
+    SimpleList(){//initialize the list with NULL pointers on the head and tail of the list
+	  head = NULL,
+	  tail = NULL;
+	}
+    string getName(){//function that will return the name of the data structure this belongs to, used later on for searching if it exists
+      return Name;
+    }
+    bool isEmpty(){//checks if the data structure is empty, used for error messages later on
+      if (head == NULL){
+          return true;
+      }
+      else{
+          return false;
+      }
+    };
+
+    void insertStart(T addData){//insert a node at the start of a list
+      Node *temporary;
+      temporary = new Node;
+      temporary -> data = addData;
+      temporary -> nextNode = head;
+      head = temporary;
+    };
+
+    void insertEnd (T addData){//insert a node at the end of a list
+      Node *temporary;
+      temporary = new Node; 
+      temporary -> data = addData;
+      temporary -> nextNode = NULL;
+
+      if(head == NULL){
+        head = temporary;
+        tail = temporary;
+      }
+      else{
+        tail -> nextNode = temporary;
+        tail = tail -> nextNode;
+      }
+    };
+
+    //insert a node at the end of a list
+    T removeStart(){//remove a node from the start of a list
+      T data;
+      if(head != NULL) {
+      Node *temporary = new Node;
+      temporary = head;
+      head = head -> nextNode;
+      data = temporary -> data;
+      delete temporary;
+      return data;
+      }
+    };
+    
+  };
+
+
+
+
+//Wish to derive a class called Stack from our abstract base class, SimpleList, using the generic type/template T
+//LIFO, so items will be removed from start
+template <typename T>
+class Stack: public SimpleList<T> {
+  public:
+    Stack(string inp){
+      this-> head = NULL;//initialize the stack with pointers to NULL (0 does not work)
+      this-> Name = inp;//stack should have name (input data listName goes to name)
+    }
+    void push(T data) {
+      this -> insertStart(data);
+    }
+    T pop() {//return type for function pop should be one that depends on the type of data stored by user in stack, this will be returned when pop is executed
+      return this -> removeStart();
+    }
+
+
+};
+//Wish to derive a class called Queue from our abstract base class, SimpleList, using the generic type/template T
+//FIFO, so items will be removed from start
+template <typename T>
+class Queue: public SimpleList<T> {
+  public:
+    Queue(string inp){
+      this-> head = NULL;
+      this-> tail = NULL;
+      this-> Name = inp;
+    }
+    void push(T data) {
+      this -> insertEnd(data);
+    }
+    T pop(){
+      return this -> removeStart();
+    }
+};
+
+
+class doThings {//class that includes functions for the running in the main and destructors
+  
+  list<SimpleList<int> *> listSLi; // all integer stacks and queues
+  list<SimpleList<double> *> listSLd; // all double stacks and queues
+  list<SimpleList<string> *> listSLs; // all string stacks and queues
+  ifstream inputFile; 
+  ofstream outputFile;
+ 
+  template <typename T>//here is the function that will search for the list that is either being created/pushed to/or popped from
+    SimpleList<T>* Search(list<SimpleList<T> *> & listType, string name){//search through the lists from the provided C++ class using an iterator to step through each created list
+      for(typename list<SimpleList<T>*>::iterator itemIterator = listType.begin(); itemIterator !=listType.end(); ++itemIterator){
+        if(((*itemIterator)-> getName())== name){
+          return *itemIterator;
+        }
+      }
+      return nullptr;
+    };
+public:
+	
+	doThings(string in, string out) {
+		  inputFile.open(in);
+		  outputFile.open(out);
+	  }
+	~doThings() {
+		  inputFile.close();
+		  outputFile.close();
+	  }
+void readFile(){//this is the main read file that holds all the conditional statements for analyzing the the document and also creating certain data structures
+while(inputFile){
+
+string command;
+string listName;
+
+inputFile >> command;
+inputFile >> listName;
+
+
+if(command == "create"){
+  string data;
+  inputFile >> data;
+  outputFile << "PROCESSING COMMAND: create " << listName << " " << data << "\n";
+  if(listName.substr(0,1)== "i"){
+    SimpleList<int>* temporaryPointer = Search(listSLi, listName);
+    if(temporaryPointer == nullptr){
+      if(data.substr(0,1) == "q"){
+        SimpleList<int> *pSLi;
+        pSLi = new Queue<int>(listName);
+        listSLi.push_front(pSLi);
+        }
+      else{
+        SimpleList<int> *pSLi;
+        pSLi = new Stack<int>(listName);
+        listSLi.push_front(pSLi);
+      }
+    }
+    else {
+    outputFile << "ERROR: This name already exists!\n";
+    }
+  }      
+  else if(listName.substr(0,1)=="s"){
+    SimpleList<string>* temporaryPointer = Search(listSLs, listName);
+    if(temporaryPointer == nullptr){
+        if(data.substr(0,1)=="q"){
+        SimpleList<string> *pSLs;
+        pSLs = new Queue<string>(listName);
+        listSLs.push_front(pSLs);
+      }
+      else{
+        SimpleList<string> *pSLs;
+        pSLs = new Stack <string>(listName);
+        listSLs.push_front(pSLs);
+      }
+    }
+    else {
+      outputFile << "ERROR: This name already exists!\n";
+    }
+  }  
+  else if(listName.substr(0,1)=="d"){
+    SimpleList<double>* temporaryPointer = Search(listSLd, listName);
+    if(temporaryPointer == nullptr){
+        if(data.substr(0,1)=="q"){                               
+        SimpleList<double> *pSLd;
+        pSLd = new Queue<double>(listName);
+        listSLd.push_front(pSLd);
+      }
+      else {
+        SimpleList<double> *pSLd;
+        pSLd = new Stack<double>(listName);
+        listSLd.push_front(pSLd);
+      }
+    }
+    else {
+      outputFile << "ERROR: This name already exists!\n";
+    }
+  }}
+  else if (command == "push"){
+    
+    
+    if(listName.substr(0,1)== "i"){
+      
+      SimpleList<int>* temporaryPointer = Search(listSLi, listName);
+      int data;
+      inputFile >> data;
+      outputFile << "PROCESSING COMMAND: push " << listName << " "<< data << "\n";
+      if(temporaryPointer == nullptr){
+        outputFile << "ERROR: This name does not exist!\n";
+        }
+      else{
+        temporaryPointer->push(data);
+      }
+    }
+    else if(listName.substr(0,1)== "d"){
+     
+      SimpleList<double>* temporaryPointer = Search(listSLd, listName);
+      double data;
+      inputFile >> data;
+      outputFile << "PROCESSING COMMAND: push " << listName << " "<< data << "\n";
+      if(temporaryPointer == nullptr){
+        outputFile << "ERROR: This name does not exist!\n";
+        }
+      else{
+        temporaryPointer->push(data);
+      }
+    }
+    else if(listName.substr(0,1)== "s"){
+      
+      SimpleList<string>* temporaryPointer = Search(listSLs, listName);
+      string data;
+      inputFile >> data;
+      outputFile << "PROCESSING COMMAND: push " << listName << " "<< data << "\n";
+      if(temporaryPointer == nullptr){
+        outputFile << "ERROR: This name does not exist!\n";
+        }
+      else{
+        temporaryPointer->push(data);
+      }
+    }
+  }
+  else if (command == "pop"){
+    outputFile << "PROCESSING COMMAND: pop " << listName << "\n";
+    if(listName.substr(0,1)== "i"){
+      SimpleList<int>* temporaryPointer = Search(listSLi, listName);//here we distinguish between an empty list and one that does not exist
+      if(temporaryPointer == nullptr){
+        outputFile << "ERROR: This name does not exist!\n";
+      }
+      else {
+        if(temporaryPointer -> isEmpty()){
+          outputFile << "ERROR: This list is empty!\n";
+        }
+        else {
+        outputFile << "Value popped: " << temporaryPointer -> pop() <<"\n";
+          
+        }
+      }
+      }
+      else if(listName.substr(0,1)== "d"){
+      SimpleList<double>* temporaryPointer = Search(listSLd, listName);//here we distinguish between an empty list and one that does not exist
+      if(temporaryPointer == nullptr){
+        outputFile << "ERROR: This name does not exist!\n";
+      }
+      else {
+        if(temporaryPointer->isEmpty()){
+          outputFile << "ERROR: This list is empty!\n";
+          
+        }
+        else {
+          outputFile << "Value popped: " << temporaryPointer-> pop() <<"\n";
+        }
+      }
+      }
+      else if(listName.substr(0,1)== "s"){
+      SimpleList<string>* temporaryPointer = Search(listSLs, listName);//here we distinguish between an empty list and one that does not exist
+      if(temporaryPointer == nullptr){
+        outputFile << "ERROR: This name does not exist!\n";
+      }
+      else {
+        if(temporaryPointer->isEmpty()){
+          outputFile << "ERROR: This list is empty!\n";
+        }
+        else {
+          outputFile << "Value popped: " << temporaryPointer->pop() <<"\n";
+        }
+      }
+      }
+    }
+  };
+  };
+};
+
+int main (){//function called upon when run 
+  string input;
+  string output;
+  cout << "Enter name of input file: ";
+  cin >> input;
+  cout << input << endl;
+  cout << "Enter name of output file: ";
+  cin >> output;
+  cout << output;
+  doThings instance(input, output); 
+  instance.readFile();
+  return 0;
+};
